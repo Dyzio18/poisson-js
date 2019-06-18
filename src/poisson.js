@@ -1,5 +1,27 @@
-class Poisson {
+class Hipek {
+    constructor(xCord,yCord){
+        this.x = xCord;
+        this.y = yCord;
+        this.iterator = 0;
+    }
 
+
+    drawHipek = () => {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "rgb(" + 255 + "," + 0 + "," + 0 + ")";
+        ctx.fillRect(this.x , this.y, 1, 1);
+    }
+
+    moveHipek = () => {
+        this.x++;
+        this.y--;
+        this.iterator++;
+    }
+
+}
+
+class Poisson {
     constructor(size, srcCount, dynamicFlag = false){
         this.size = size;
         this.sourceCounter = srcCount;
@@ -8,6 +30,12 @@ class Poisson {
         this.canvas = {};
         this.isDynamic = dynamicFlag;
         this.space = this.initSpace(size);
+        this.isHipekActive = false;
+        this.hipek = new Hipek(5,5);
+    }
+
+    initHipek = () => {
+        this.hipek = new Hipek(20,30);
     }
 
     initSpace = (size) => {
@@ -34,7 +62,11 @@ class Poisson {
         return sourcePoints;
     }
 
-    makePoint = (x,y,val) => {return {x,y,val}} ;
+    randPoint = () => {
+
+    }
+
+    makePoint = (x,y,val) => { return {x,y,val} } ;
 
     setStaticSources = () => {
         this.sources.forEach(element => {
@@ -93,8 +125,12 @@ class Poisson {
         }
 
         this.drawSpace();
+        this.hipek.drawHipek();
     }
 
+    setDynamicSourceStatus = (status) => {
+        this.isDynamic = status;
+    }
 
     drawSpace = () => {
 
