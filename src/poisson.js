@@ -3,6 +3,7 @@ class Poisson {
     constructor(size, srcCount, dynamicFlag = false){
         this.size = size;
         this.sourceCounter = srcCount;
+        this.iterationCounter = 0;
         this.sources = this.initSources(size, srcCount);
         this.canvas = {};
         this.isDynamic = dynamicFlag;
@@ -41,6 +42,29 @@ class Poisson {
         })
     }
 
+    moveSources = (point) => {
+        const movedPoint = point;
+        let randMove = Math.floor(Math.random() * Math.floor(4));
+
+        if(randMove === 0 && movedPoint.x > 1) {
+            // left
+            movedPoint.x--;
+        } else if(randMove === 1  && movedPoint.x < (this.size - 2)){
+            // right
+            movedPoint.x++;
+        } else if(randMove === 2 && movedPoint.y > 1){
+            // top
+            movedPoint.y--;
+        } else if(randMove === 3 && movedPoint.y < (this.size - 2)){
+            // bottom
+            movedPoint.y++;
+        } else {
+            this.moveSources(point);
+        }
+
+        return movedPoint;
+    }
+
     // Laplace operator
     calculate = () => {
         const SIZE = this.size;
@@ -59,9 +83,12 @@ class Poisson {
 
     iteration = (iterCounter) => {
         for(let i = 0; i < iterCounter; i++){
-            this.calculate()
-            if(this.isDynamic){
-                console.log("TODO: ITERATION DYNAMIC SRC")
+            this.calculate();
+            this.iterationCounter++;
+            if(this.isDynamic && (this.iterationCounter % 10 == 0)){
+                for(let srcCount = 0; srcCount < this.sources.length; srcCount++){
+                    this.sources[srcCount] = this.moveSources(this.sources[srcCount]);
+                }     
             }
         }
 
