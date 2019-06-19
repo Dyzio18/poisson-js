@@ -1,21 +1,54 @@
 class Hipek {
-    constructor(xCord,yCord){
+    constructor(xCord,yCord, spaceSize){
         this.x = xCord;
         this.y = yCord;
+        this.spaceSize = spaceSize;
         this.iterator = 0;
+        this.isActive = false;
+        this.space = null;
+        this.lookPoint = [];
     }
 
+    wakeUp = (space) => {
+        this.isActive = true;
+        this.space = space;
+    }
 
-    drawHipek = () => {
+    draw = () => {
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = "rgb(" + 255 + "," + 0 + "," + 0 + ")";
         ctx.fillRect(this.x , this.y, 1, 1);
     }
 
-    moveHipek = () => {
+    initSearch = () => {
+        const initStep = 10;
+
+        if(this.x < (this.spaceSize - initStep)) {
+            this.x += initStep;
+        } else if (this.x >= (this.spaceSize - initStep)) {
+            this.y += initStep;
+            this.x = initStep;
+        }
+        
+        if(this.y >= (this.spaceSize - initStep)){
+            this.y = initStep;
+        }
+
+        //TODO: save value
+        console.log(this.getCurrentValue())
+        M.toast({html: `I find ${this.getCurrentValue()}`});
+
+        
+    }
+
+    getCurrentValue = () => {
+        return this.space[this.x][this.y];
+    }
+
+    move = (x,y) => {
         this.x++;
-        this.y--;
+        this.y++;
         this.iterator++;
     }
 
@@ -30,8 +63,8 @@ class Poisson {
         this.canvas = {};
         this.isDynamic = dynamicFlag;
         this.space = this.initSpace(size);
-        this.isHipekActive = false;
-        this.hipek = new Hipek(5,5);
+        this.hipek = new Hipek(10,10,size);
+        this.hipekWakeUpIteration = 1000; // start move after X iteration
     }
 
     initHipek = () => {
@@ -54,7 +87,7 @@ class Poisson {
         const sourcePoints = [];
 
         sourcePoints[0] = this.makePoint(30,30,100);
-        sourcePoints[1] = this.makePoint(20,20,75);
+        sourcePoints[1] = this.makePoint(2,20,75);
         sourcePoints[2] = this.makePoint(20,40,75);
         sourcePoints[3] = this.makePoint(60,60,75);
         sourcePoints[4] = this.makePoint(80,80,75);
@@ -122,18 +155,31 @@ class Poisson {
                     this.sources[srcCount] = this.moveSources(this.sources[srcCount]);
                 }     
             }
+
+            if(this.iterationCounter > this.hipekWakeUpIteration){
+                if(!this.hipek.isActive){
+                    this.hipek.wakeUp(this.space)
+                } else{    
+                   this.hipek.initSearch();
+                }
+            }
         }
 
         this.drawSpace();
-        this.hipek.drawHipek();
+        this.viewIterationBadge();
+        this.hipek.draw();
     }
 
     setDynamicSourceStatus = (status) => {
         this.isDynamic = status;
     }
 
-    drawSpace = () => {
+    viewIterationBadge = () => {
+        const badge = document.querySelector('[data-iteration-counter]');
+        badge.innerHTML = `${this.iterationCounter}`
+    }
 
+    drawSpace = () => {
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         

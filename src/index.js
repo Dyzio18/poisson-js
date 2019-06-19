@@ -5,7 +5,7 @@ import Poisson from "./poisson";
 console.log("HELLO")
 const poisson = new Poisson(100,5,false);
 
-poisson.iteration(10);
+poisson.iteration(1000);
 
 
 
