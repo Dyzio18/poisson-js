@@ -5,8 +5,10 @@ class Hipek {
         this.spaceSize = spaceSize;
         this.iterator = 0;
         this.isActive = false;
+        this.isInitialSearchFinished = false;
+        this.isClimbing = false;
         this.space = null;
-        this.lookPoint = [];
+        this.lookedPoint = [];
     }
 
     wakeUp = (space) => {
@@ -17,12 +19,19 @@ class Hipek {
     draw = () => {
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+
+        const hipekIteratorElem = document.querySelector('[data-hipek-iterator]');
+        hipekIteratorElem.innerHTML = this.iterator;
+        
         ctx.fillStyle = "rgb(" + 255 + "," + 0 + "," + 0 + ")";
         ctx.fillRect(this.x , this.y, 1, 1);
     }
 
     initSearch = () => {
-        const initStep = 10;
+        const initStep = 15;
+        
+        this.lookedPoint.push({x:this.x, y:this.y, val: this.getCurrentValue()})
+        this.iterator++;
 
         if(this.x < (this.spaceSize - initStep)) {
             this.x += initStep;
@@ -33,22 +42,71 @@ class Hipek {
         
         if(this.y >= (this.spaceSize - initStep)){
             this.y = initStep;
+            M.toast({html: `I finish initial search`});
+            this.isInitialSearchFinished = true;
         }
 
-        //TODO: save value
-        console.log(this.getCurrentValue())
-        M.toast({html: `I find ${this.getCurrentValue()}`});
-
-        
     }
 
     getCurrentValue = () => {
         return this.space[this.x][this.y];
     }
 
+    getBestSearchInPointArray= (pointArray) => {
+        let bestPoint = pointArray[0];
+        pointArray.forEach(elem => {
+            if(elem.val > bestPoint.val){
+                bestPoint = elem;
+            }
+        })
+        return bestPoint;
+    }
+
+    getNeigbors = () => {
+        const neighbors = [];
+        let i = this.x;
+        let j = this.y;
+
+        neighbors.push({x:i-1,y:j-1,val: this.space[i-1][j-1]})
+        neighbors.push({x:i-1,y:j,val: this.space[i-1][j]})
+        neighbors.push({x:i-1,y:j-1,val: this.space[i-1][j+1]})
+        
+        neighbors.push({x:i,y:j-1,val: this.space[i][j-1]})
+        neighbors.push({x:i,y:j+1,val: this.space[i][j+1]})
+        
+        neighbors.push({x:i+1,y:j-1,val: this.space[i+1][j-1]})
+        neighbors.push({x:i+1,y:j-1,val: this.space[i+1][j]})
+        neighbors.push({x:i+1,y:j-1,val: this.space[i+1][j+1]})
+
+        return neighbors;
+    }
+
+    bestNeighborValue = () => {
+        const neighbors = this.getNeigbors();
+        return this.getBestSearchInPointArray(neighbors);
+    }
+
+    heuristicSearch = () => {
+        
+        if(!this.isClimbing && this.lookedPoint.length > 0){
+            let bestPoint = this.getBestSearchInPointArray(this.lookedPoint);
+            this.move(bestPoint.x, bestPoint.y); 
+            this.isClimbing = true;
+            M.toast({html: `Best point is (${bestPoint.x},${bestPoint.y})`});
+        } else {
+            let nextPoint = this.bestNeighborValue();
+            this.move(nextPoint.x,nextPoint.y);
+            // M.toast({html: `Best point is (${nextPoint.x},${nextPoint.y}=${Math.round(nextPoint.val)} )`});
+            
+            if(this.space[this.x][this.y].val > 99){
+                M.toast({html: `Found MAX source (${nextPoint.x},${nextPoint.y}=${Math.round(nextPoint.val)} )`});
+            }
+        } 
+    }
+
     move = (x,y) => {
-        this.x++;
-        this.y++;
+        this.x = x;
+        this.y = y;
         this.iterator++;
     }
 
@@ -82,14 +140,14 @@ class Poisson {
         return arr;
     }
 
-    // TODO: make dynamic init
+    // TODO: make dynamic sourcePoints
     initSources = (size, srcCount) => {
         const sourcePoints = [];
 
-        sourcePoints[0] = this.makePoint(30,30,100);
-        sourcePoints[1] = this.makePoint(2,20,75);
-        sourcePoints[2] = this.makePoint(20,40,75);
-        sourcePoints[3] = this.makePoint(60,60,75);
+        sourcePoints[0] = this.makePoint(68,68,75);
+        sourcePoints[1] = this.makePoint(20,20,75);
+        sourcePoints[2] = this.makePoint(40,40,75);
+        sourcePoints[3] = this.makePoint(60,60,100);
         sourcePoints[4] = this.makePoint(80,80,75);
 
         return sourcePoints;
@@ -159,8 +217,12 @@ class Poisson {
             if(this.iterationCounter > this.hipekWakeUpIteration){
                 if(!this.hipek.isActive){
                     this.hipek.wakeUp(this.space)
-                } else{    
+                } 
+                
+                if(!this.hipek.isInitialSearchFinished){    
                    this.hipek.initSearch();
+                } else {
+                    this.hipek.heuristicSearch();
                 }
             }
         }
