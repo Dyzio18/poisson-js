@@ -7,8 +7,10 @@ class Hipek {
         this.isActive = false;
         this.isInitialSearchFinished = false;
         this.isClimbing = false;
+        this.isFinish = false;
         this.space = null;
         this.lookedPoint = [];
+        this.bestLookedPoint = null;
     }
 
     wakeUp = (space) => {
@@ -27,12 +29,16 @@ class Hipek {
         ctx.fillRect(this.x , this.y, 1, 1);
     }
 
-    initSearch = () => {
-        const initStep = 15;
+    initSearch = (initStepInput = 15) => {
+        const initStep = initStepInput;
+
+        const neighbors = this.getNeigbors();
+        const bestNeighbor = this.getBestSearchInPointArray(neighbors);
         
-        this.lookedPoint.push({x:this.x, y:this.y, val: this.getCurrentValue()})
+        this.lookedPoint.push({x:bestNeighbor.x, y:bestNeighbor.y, val: bestNeighbor.val})
         this.iterator++;
 
+        // Move to step point
         if(this.x < (this.spaceSize - initStep)) {
             this.x += initStep;
         } else if (this.x >= (this.spaceSize - initStep)) {
@@ -40,6 +46,9 @@ class Hipek {
             this.x = initStep;
         }
         
+        if(this.lookedPoint.length == 1){
+            M.toast({html: `I start initial search`});
+        }
         if(this.y >= (this.spaceSize - initStep)){
             this.y = initStep;
             M.toast({html: `I finish initial search`});
@@ -62,46 +71,87 @@ class Hipek {
         return bestPoint;
     }
 
-    getNeigbors = () => {
+    getNeigbors = (xCoord = this.x, yCoord = this.y) => {
         const neighbors = [];
-        let i = this.x;
-        let j = this.y;
+        let i = xCoord;
+        let j = yCoord;
 
         neighbors.push({x:i-1,y:j-1,val: this.space[i-1][j-1]})
         neighbors.push({x:i-1,y:j,val: this.space[i-1][j]})
-        neighbors.push({x:i-1,y:j-1,val: this.space[i-1][j+1]})
+        neighbors.push({x:i-1,y:j+1,val: this.space[i-1][j+1]})
         
         neighbors.push({x:i,y:j-1,val: this.space[i][j-1]})
         neighbors.push({x:i,y:j+1,val: this.space[i][j+1]})
         
         neighbors.push({x:i+1,y:j-1,val: this.space[i+1][j-1]})
-        neighbors.push({x:i+1,y:j-1,val: this.space[i+1][j]})
-        neighbors.push({x:i+1,y:j-1,val: this.space[i+1][j+1]})
+        neighbors.push({x:i+1,y:j,val: this.space[i+1][j]})
+        neighbors.push({x:i+1,y:j+1,val: this.space[i+1][j+1]})
 
         return neighbors;
     }
 
     bestNeighborValue = () => {
         const neighbors = this.getNeigbors();
-        return this.getBestSearchInPointArray(neighbors);
+        const bestNeighbor = this.getBestSearchInPointArray(neighbors);   
+
+        return bestNeighbor;
     }
 
     heuristicSearch = () => {
         
-        if(!this.isClimbing && this.lookedPoint.length > 0){
-            let bestPoint = this.getBestSearchInPointArray(this.lookedPoint);
-            this.move(bestPoint.x, bestPoint.y); 
-            this.isClimbing = true;
-            M.toast({html: `Best point is (${bestPoint.x},${bestPoint.y})`});
-        } else {
-            let nextPoint = this.bestNeighborValue();
-            this.move(nextPoint.x,nextPoint.y);
-            // M.toast({html: `Best point is (${nextPoint.x},${nextPoint.y}=${Math.round(nextPoint.val)} )`});
-            
-            if(this.space[this.x][this.y].val > 99){
-                M.toast({html: `Found MAX source (${nextPoint.x},${nextPoint.y}=${Math.round(nextPoint.val)} )`});
+        if(!this.hipek.isFinish){
+
+            if(!this.isClimbing && this.isActive && this.lookedPoint.length == 0) {
+                alert("Looked points is empty!")
+                this.initSearch(10);
             }
-        } 
+
+
+            if(!this.isClimbing && this.isActive && this.lookedPoint.length > 0){
+
+                let bestPoint = this.getBestSearchInPointArray(this.lookedPoint);
+                this.bestLookedPoint = bestPoint;
+                this.move(bestPoint.x, bestPoint.y); 
+                this.isClimbing = true;
+                M.toast({html: `Go to best looked point to (${bestPoint.x},${bestPoint.y})`});
+
+            } else {
+
+                let nextPoint = this.bestNeighborValue();
+                this.move(nextPoint.x,nextPoint.y);    
+                
+                if(this.space[this.x][this.y] == 75){
+                    this.isClimbing = false;
+                    let closePoint = this.bestNeighborValue();
+                    if(closePoint.val < nextPoint.val){
+                        this.lookedPoint = this.lookedPoint.filter(elem => (elem.x != this.bestLookedPoint.x && elem.y != this.bestLookedPoint.y));
+                        this.lookedPoint = this.lookedPoint.filter(elem => (elem.x != this.x && elem.y != this.y));
+                        M.toast({html: `Found local maximum (${nextPoint.x},${nextPoint.y})=${Math.round(nextPoint.val)}`});
+                    }
+                }
+                
+                if(this.space[this.x][this.y] > 99){
+                    this.lookedPoint[0] = nextPoint;
+                    M.toast({html: `Found MAX source (${nextPoint.x},${nextPoint.y})=${Math.round(nextPoint.val)}`, classes: 'green'});
+                    this.finishSearch(true)
+                }
+            } 
+        }
+    }
+    
+    finishSearch = (status) => {
+        this.isFinish = true;
+
+        if(!status){
+            console.log("Can\'t find max value")
+        }
+
+        document.querySelectorAll('#modal-succes').openModal()
+        const elem = document.querySelectorAll('.modal')
+        const instance = M.Modal.getInstance(elem);
+        instance.open();
+
+
     }
 
     move = (x,y) => {
@@ -123,6 +173,7 @@ class Poisson {
         this.space = this.initSpace(size);
         this.hipek = new Hipek(10,10,size);
         this.hipekWakeUpIteration = 1000; // start move after X iteration
+        this.animationId = null;
     }
 
     initHipek = () => {
@@ -140,21 +191,33 @@ class Poisson {
         return arr;
     }
 
-    // TODO: make dynamic sourcePoints
     initSources = (size, srcCount) => {
         const sourcePoints = [];
 
-        sourcePoints[0] = this.makePoint(68,68,75);
-        sourcePoints[1] = this.makePoint(20,20,75);
-        sourcePoints[2] = this.makePoint(40,40,75);
-        sourcePoints[3] = this.makePoint(60,60,100);
-        sourcePoints[4] = this.makePoint(80,80,75);
+        // sourcePoints[0] = this.makePoint(68,68,75);
+        // sourcePoints[1] = this.makePoint(20,20,75);
+        // sourcePoints[2] = this.makePoint(40,40,75);
+        // sourcePoints[3] = this.makePoint(60,60,100);
+        // sourcePoints[4] = this.makePoint(80,80,75);
+        
+        sourcePoints[0] = this.randPoint(100);
+        sourcePoints[1] = this.randPoint(75);
+        sourcePoints[2] = this.randPoint(75);
+        sourcePoints[3] = this.randPoint(75);
+        sourcePoints[4] = this.randPoint(75);
 
         return sourcePoints;
     }
 
-    randPoint = () => {
+    randPoint = (value) => {
+        let x = Math.floor(Math.random() * Math.floor(this.size));
+        let y = Math.floor(Math.random() * Math.floor(this.size));
+         
+        if ((x <= 3) || (x >= (this.size - 3)) || (y <= 3) || (y >= (this.size - 3))){
+            return this.randPoint(value);
+        }
 
+        return {x:x,y:y,val:value};
     }
 
     makePoint = (x,y,val) => { return {x,y,val} } ;
@@ -204,7 +267,7 @@ class Poisson {
 
     normalize = (val, max=100, min=0) => { return ((val - min) / (max - min))*255; }
 
-    iteration = (iterCounter) => {
+    iteration = (iterCounter = 1) => {
         for(let i = 0; i < iterCounter; i++){
             this.calculate();
             this.iterationCounter++;
@@ -225,11 +288,28 @@ class Poisson {
                     this.hipek.heuristicSearch();
                 }
             }
+
+            if(this.hipek.iterator > 250){ 
+                this.stopAnimation();
+                this.hipek.finishSearch(false); 
+            }
+            if(this.hipek.isFinish) {  
+                this.stopAnimation();
+            }
         }
 
         this.drawSpace();
         this.viewIterationBadge();
         this.hipek.draw();
+    }
+
+
+    playAnimation = () => {
+        this.animationId = setInterval(this.iteration, 500);
+    }
+
+    stopAnimation = () => {
+        clearInterval(this.animationId);
     }
 
     setDynamicSourceStatus = (status) => {
@@ -256,15 +336,15 @@ class Poisson {
                 if (arrValue > 90){
                     greyScale = 255;
                 } else if(arrValue > 70){
-                    greyScale = 220;
+                    greyScale = 168;
                 } else if(arrValue > 50){
-                    greyScale = 200;
+                    greyScale = 144;
                 } else if(arrValue > 10){
-                    greyScale = 164;
-                } else if(arrValue > 4){
                     greyScale = 128;
-                } else if(arrValue > 1){
+                } else if(arrValue > 4){
                     greyScale = 64;
+                } else if(arrValue > 1){
+                    greyScale = 32;
                 } else if( arrValue > 0.1){
                     greyScale = 12;
                 } 
@@ -274,8 +354,8 @@ class Poisson {
                 
                 ctx.fillStyle = "rgb(" + greyScale + "," + greyScale + "," + greyScale + ")";
                 ctx.fillRect(i, j, 1, 1);
-                }
             }
+        }
     }
 
 }

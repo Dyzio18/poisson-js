@@ -2,12 +2,12 @@ const css = require('./style.scss');
 import Poisson from "./poisson";
 
 
-console.log("HELLO")
-const poisson = new Poisson(100,5,false);
-
+let poisson = new Poisson(100,5,false);
 poisson.iteration(1000);
 
 
+
+// EVENTS
 
 const uiAnimationBtnList = document.querySelectorAll('[data-animation-times]');
 for (const button of uiAnimationBtnList) {
@@ -19,9 +19,9 @@ for (const button of uiAnimationBtnList) {
 
 const uiAnimationPlay = document.querySelector('[data-animation-play]');
 uiAnimationPlay.addEventListener('click', function(event) {
-    console.log("PLAY")
+    uiAnimationPlay.classList.add("disabled");
+    poisson.playAnimation();
 });
-
 
 
 let checkbox = document.querySelector("[data-checkbox-dynamic-source]");
@@ -32,6 +32,26 @@ checkbox.addEventListener( 'change', function() {
         poisson.setDynamicSourceStatus(false)
     }
 });
+
+
+document.querySelector("[data-reset-space]").addEventListener('click', function(event) {
+    restart()
+});
+
+// FUNCTION
+
+const restart = () => {
+
+    uiAnimationPlay.classList.remove("disabled");
+    if(poisson.animationId){
+        poisson.stopAnimation();
+    }
+
+    poisson = new Poisson(100,5,false); 
+    poisson.iteration(1000);
+    document.querySelector("[data-checkbox-dynamic-source]").checked = false;
+}
+
 
 
 window.poisson = poisson;
