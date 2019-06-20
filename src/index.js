@@ -47,6 +47,7 @@ const restart = () => {
         poisson.stopAnimation();
     }
 
+    poisson = {};
     poisson = new Poisson(100,5,false); 
     poisson.iteration(1000);
     document.querySelector("[data-checkbox-dynamic-source]").checked = false;

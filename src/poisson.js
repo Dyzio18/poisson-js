@@ -30,6 +30,7 @@ class Hipek {
     }
 
     initSearch = (initStepInput = 15) => {
+
         const initStep = initStepInput;
 
         const neighbors = this.getNeigbors();
@@ -99,44 +100,42 @@ class Hipek {
 
     heuristicSearch = () => {
         
-        if(!this.hipek.isFinish){
 
-            if(!this.isClimbing && this.isActive && this.lookedPoint.length == 0) {
-                alert("Looked points is empty!")
-                this.initSearch(10);
-            }
-
-
-            if(!this.isClimbing && this.isActive && this.lookedPoint.length > 0){
-
-                let bestPoint = this.getBestSearchInPointArray(this.lookedPoint);
-                this.bestLookedPoint = bestPoint;
-                this.move(bestPoint.x, bestPoint.y); 
-                this.isClimbing = true;
-                M.toast({html: `Go to best looked point to (${bestPoint.x},${bestPoint.y})`});
-
-            } else {
-
-                let nextPoint = this.bestNeighborValue();
-                this.move(nextPoint.x,nextPoint.y);    
-                
-                if(this.space[this.x][this.y] == 75){
-                    this.isClimbing = false;
-                    let closePoint = this.bestNeighborValue();
-                    if(closePoint.val < nextPoint.val){
-                        this.lookedPoint = this.lookedPoint.filter(elem => (elem.x != this.bestLookedPoint.x && elem.y != this.bestLookedPoint.y));
-                        this.lookedPoint = this.lookedPoint.filter(elem => (elem.x != this.x && elem.y != this.y));
-                        M.toast({html: `Found local maximum (${nextPoint.x},${nextPoint.y})=${Math.round(nextPoint.val)}`});
-                    }
-                }
-                
-                if(this.space[this.x][this.y] > 99){
-                    this.lookedPoint[0] = nextPoint;
-                    M.toast({html: `Found MAX source (${nextPoint.x},${nextPoint.y})=${Math.round(nextPoint.val)}`, classes: 'green'});
-                    this.finishSearch(true)
-                }
-            } 
+        if(!this.isClimbing && this.isActive && this.lookedPoint.length == 0) {
+            console.log("Looked points is empty!")
+            this.isInitialSearchFinished = false;
+            this.x = 10;
+            this.y = 10;
         }
+
+        if(!this.isClimbing && this.isActive && this.lookedPoint.length > 0){ 
+            let bestPoint = this.getBestSearchInPointArray(this.lookedPoint);
+            this.bestLookedPoint = bestPoint;
+            this.move(bestPoint.x, bestPoint.y); 
+            this.isClimbing = true;
+            M.toast({html: `Go to best looked point to (${bestPoint.x},${bestPoint.y})`});
+
+        } else {
+            let nextPoint = this.bestNeighborValue();
+            this.move(nextPoint.x,nextPoint.y);    
+            
+            if(this.space[this.x][this.y] == 75){
+                this.isClimbing = false;
+                let closePoint = this.bestNeighborValue();
+
+                if(closePoint.val < nextPoint.val){
+                    this.lookedPoint = this.lookedPoint.filter(elem => (elem.x != this.bestLookedPoint.x && elem.y != this.bestLookedPoint.y));
+                    this.lookedPoint = this.lookedPoint.filter(elem => (elem.x != this.x && elem.y != this.y));
+                    M.toast({html: `Found local maximum (${nextPoint.x},${nextPoint.y})=${Math.round(nextPoint.val)}`});
+                }
+            }
+            
+            if(this.space[this.x][this.y] > 99){
+                this.lookedPoint[0] = nextPoint;
+                M.toast({html: `Found MAX source (${nextPoint.x},${nextPoint.y})=${Math.round(nextPoint.val)}`, classes: 'green'});
+                this.finishSearch(true)
+            }
+        }        
     }
     
     finishSearch = (status) => {
@@ -145,13 +144,6 @@ class Hipek {
         if(!status){
             console.log("Can\'t find max value")
         }
-
-        document.querySelectorAll('#modal-succes').openModal()
-        const elem = document.querySelectorAll('.modal')
-        const instance = M.Modal.getInstance(elem);
-        instance.open();
-
-
     }
 
     move = (x,y) => {
@@ -268,39 +260,41 @@ class Poisson {
     normalize = (val, max=100, min=0) => { return ((val - min) / (max - min))*255; }
 
     iteration = (iterCounter = 1) => {
-        for(let i = 0; i < iterCounter; i++){
-            this.calculate();
-            this.iterationCounter++;
-            if(this.isDynamic && (this.iterationCounter % 10 == 0)){
-                for(let srcCount = 0; srcCount < this.sources.length; srcCount++){
-                    this.sources[srcCount] = this.moveSources(this.sources[srcCount]);
-                }     
-            }
-
-            if(this.iterationCounter > this.hipekWakeUpIteration){
-                if(!this.hipek.isActive){
-                    this.hipek.wakeUp(this.space)
-                } 
+        if(!this.hipek.isFinish){
+            for(let i = 0; i < iterCounter; i++){
+                    this.calculate();
+                    this.iterationCounter++;
+                    if(this.isDynamic && (this.iterationCounter % 10 == 0)){
+                        for(let srcCount = 0; srcCount < this.sources.length; srcCount++){
+                        this.sources[srcCount] = this.moveSources(this.sources[srcCount]);
+                    }     
+                }
                 
-                if(!this.hipek.isInitialSearchFinished){    
-                   this.hipek.initSearch();
-                } else {
-                    this.hipek.heuristicSearch();
+                if(this.iterationCounter > this.hipekWakeUpIteration){
+                    if(!this.hipek.isActive){
+                        this.hipek.wakeUp(this.space)
+                    } 
+                    
+                    if(!this.hipek.isInitialSearchFinished){    
+                        this.hipek.initSearch();
+                    } else {
+                        this.hipek.heuristicSearch();
+                    }
+                }
+                
+                if(this.hipek.iterator > 250){ 
+                    this.stopAnimation();
+                    this.hipek.finishSearch(false); 
+                }
+                if(this.hipek.isFinish) {  
+                    this.stopAnimation();
                 }
             }
 
-            if(this.hipek.iterator > 250){ 
-                this.stopAnimation();
-                this.hipek.finishSearch(false); 
-            }
-            if(this.hipek.isFinish) {  
-                this.stopAnimation();
-            }
+            this.drawSpace();
+            this.viewIterationBadge();
+            this.hipek.draw();
         }
-
-        this.drawSpace();
-        this.viewIterationBadge();
-        this.hipek.draw();
     }
 
 
